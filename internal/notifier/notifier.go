@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/smtp"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -18,38 +20,55 @@ type DomainNotification struct {
 }
 
 func SendNotification(notifications []DomainNotification, cfg *config.Config) error {
-	log.Printf("开始发送邮件通知")
+	// 根据配置的通知方式选择发送方法
+	switch cfg.NotificationMethod {
+	case "bark":
+		if cfg.BarkURL == "" {
+			return fmt.Errorf("Bark URL 未配置，无法发送 Bark 通知")
+		}
+		log.Printf("开始发送 Bark 通知")
+		err := sendBarkNotification(notifications, cfg.BarkURL)
+		if err != nil {
+			return fmt.Errorf("发送 Bark 通知失败: %v", err)
+		}
+		log.Println("Bark 通知发送成功")
+		return nil
+	case "email":
+		fallthrough
+	default:
+		log.Printf("开始发送邮件通知")
 
-	// 创建邮件内容
-	to := []string{cfg.RecipientEmail}
-	subject := "域名状态变更提醒"
-	body := generateEmailBody(notifications)
+		// 创建邮件内容
+		to := []string{cfg.RecipientEmail}
+		subject := "域名状态变更提醒"
+		body := generateEmailBody(notifications)
 
-	msg := []byte(fmt.Sprintf("From: %s\r\n"+
-		"To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"MIME-Version: 1.0\r\n"+
-		"Content-Type: text/html; charset=UTF-8\r\n"+
-		"\r\n"+
-		"%s\r\n", cfg.SMTPUsername, cfg.RecipientEmail, subject, body))
+		msg := []byte(fmt.Sprintf("From: %s\r\n"+
+			"To: %s\r\n"+
+			"Subject: %s\r\n"+
+			"MIME-Version: 1.0\r\n"+
+			"Content-Type: text/html; charset=UTF-8\r\n"+
+			"\r\n"+
+			"%s\r\n", cfg.SMTPUsername, cfg.RecipientEmail, subject, body))
 
-	// 根据端口选择不同的发送方式
-	var err error
-	switch cfg.SMTPPort {
-	case 25:
-		err = sendMailInsecure(cfg, to, msg)
-	case 465:
-		err = sendMailSSL(cfg, to, msg)
-	default: // 包括 587 端口
-		err = sendMailTLS(cfg, to, msg)
+		// 根据端口选择不同的发送方式
+		var err error
+		switch cfg.SMTPPort {
+		case 25:
+			err = sendMailInsecure(cfg, to, msg)
+		case 465:
+			err = sendMailSSL(cfg, to, msg)
+		default: // 包括 587 端口
+			err = sendMailTLS(cfg, to, msg)
+		}
+
+		if err != nil {
+			return fmt.Errorf("发送邮件失败: %v", err)
+		}
+
+		log.Println("邮件发送成功")
+		return nil
 	}
-
-	if err != nil {
-		return fmt.Errorf("发送邮件失败: %v", err)
-	}
-
-	log.Println("邮件发送成功")
-	return nil
 }
 
 func sendMailInsecure(cfg *config.Config, to []string, msg []byte) error {
@@ -178,6 +197,49 @@ func generateEmailBody(notifications []DomainNotification) string {
 </body>
 </html>
     `, time.Now().Format("2006年01月02日 15:04:05")))
+
+	return body.String()
+}
+
+func sendBarkNotification(notifications []DomainNotification, barkURL string) error {
+	title := "域名状态变更提醒"
+	body := generateBarkBody(notifications)
+
+	// URL 编码标题和正文
+	encodedTitle := url.QueryEscape(title)
+	encodedBody := url.QueryEscape(body)
+
+	// 构建 Bark API URL: {BarkURL}/{title}/{body}
+	apiURL := fmt.Sprintf("%s/%s/%s", barkURL, encodedTitle, encodedBody)
+
+	// 发送 HTTP GET 请求
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return fmt.Errorf("发送 Bark 请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Bark API 返回错误状态码: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func generateBarkBody(notifications []DomainNotification) string {
+	var body strings.Builder
+
+	for i, n := range notifications {
+		if i > 0 {
+			body.WriteString("\n")
+		}
+		body.WriteString(fmt.Sprintf("%s: %s", n.Domain, n.Status))
+		if n.IsFinalNotice {
+			body.WriteString(" (最终通知)")
+		}
+	}
+
+	body.WriteString(fmt.Sprintf("\n检测时间：%s", time.Now().Format("2006年01月02日 15:04:05")))
 
 	return body.String()
 }

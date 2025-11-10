@@ -375,6 +375,11 @@ function saveSettings(e) {
     if ('SMTP_PORT' in settings) settings.SMTP_PORT = parseInt(settings.SMTP_PORT, 10) || 0;
     if ('WEB_PORT' in settings) settings.WEB_PORT = parseInt(settings.WEB_PORT, 10) || 0;
     if ('QUERY_FREQUENCY_SECONDS' in settings) settings.QUERY_FREQUENCY_SECONDS = parseInt(settings.QUERY_FREQUENCY_SECONDS, 10) || 0;
+    
+    // 确保通知方式字段存在
+    if (!('NOTIFICATION_METHOD' in settings)) {
+        settings.NOTIFICATION_METHOD = 'email';
+    }
 
     fetch('/api/settings', {
         method: 'POST',
@@ -414,15 +419,29 @@ function updateSettingsForm(data) {
 
     const fields = [
         'RECIPIENT_EMAIL', 'SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD',
-        'WEB_PORT', 'AUTH_USERNAME', 'AUTH_PASSWORD', 'QUERY_FREQUENCY_SECONDS', 'SESSION_SECRET'
+        'WEB_PORT', 'AUTH_USERNAME', 'AUTH_PASSWORD', 'QUERY_FREQUENCY_SECONDS', 'SESSION_SECRET',
+        'NOTIFICATION_METHOD', 'BARK_URL'
     ];
 
     fields.forEach(field => {
-        const input = form.querySelector(`[name="${field}"]`);
-        if (input && config[field] !== undefined) {
-            input.value = config[field];
+        if (field === 'NOTIFICATION_METHOD') {
+            // 处理通知方式单选按钮
+            const radio = form.querySelector(`input[name="${field}"][value="${config[field] || 'email'}"]`);
+            if (radio) {
+                radio.checked = true;
+            }
+        } else {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input && config[field] !== undefined) {
+                input.value = config[field];
+            }
         }
     });
+    
+    // 触发字段显示切换
+    if (typeof toggleNotificationFields === 'function') {
+        toggleNotificationFields();
+    }
 }
 function forceRefreshSettings() {
     fetch('/api/settings', {

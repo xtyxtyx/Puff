@@ -3,6 +3,7 @@ package web
 import (
 	"Puff/internal/auth"
 	"Puff/internal/config"
+	"log"
 	"strconv"
 	"time"
 
@@ -65,9 +66,12 @@ func StartServer() error {
 		authorized.POST("/api/settings", handleAPISettings)
 		authorized.GET("/api/check-update", handleCheckUpdate)
 		authorized.POST("/api/test-email", handleTestEmail)
+		authorized.POST("/api/test-bark", handleTestBark)
 	}
 
-	return r.Run(":" + strconv.Itoa(cfg.WebPort))
+	address := "0.0.0.0:" + strconv.Itoa(cfg.WebPort)
+	log.Printf("Server starting on http://%s", address)
+	return r.Run(address)
 }
 
 func handleLogin(c *gin.Context) {

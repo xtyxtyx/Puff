@@ -61,6 +61,26 @@ func handleAddDomain(c *gin.Context) {
 	// 更新监控系统中的域名列表
 	monitor.UpdateDomainList(domains)
 
+	// 立即检查新添加的域名
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Printf("加载配置失败，无法立即检查域名: %v", err)
+	} else {
+		whoisServers, err := config.LoadWhoisServers()
+		if err != nil {
+			log.Printf("加载 Whois 服务器失败，无法立即检查域名: %v", err)
+		} else {
+			// 在 goroutine 中异步检查，避免阻塞响应
+			go func() {
+				if err := monitor.CheckSingleDomain(domain, whoisServers, cfg); err != nil {
+					log.Printf("立即检查域名 %s 时出错: %v", domain, err)
+				} else {
+					log.Printf("已立即检查域名 %s", domain)
+				}
+			}()
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
@@ -285,6 +305,8 @@ func handleAPISettings(c *gin.Context) {
 				"AUTH_PASSWORD":           cfg.AuthPassword,
 				"QUERY_FREQUENCY_SECONDS": cfg.QueryFrequencySeconds,
 				"SESSION_SECRET":          cfg.SessionSecret,
+				"NOTIFICATION_METHOD":      cfg.NotificationMethod,
+				"BARK_URL":                 cfg.BarkURL,
 			},
 		})
 	} else if c.Request.Method == "POST" {
@@ -336,6 +358,11 @@ func handleTestEmail(c *gin.Context) {
 		return
 	}
 
+	if cfg.NotificationMethod != "email" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "当前通知方式不是邮件，无法测试邮件"})
+		return
+	}
+
 	testNotification := []notifier.DomainNotification{
 		{
 			Domain:        "example.com",
@@ -351,6 +378,40 @@ func handleTestEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "测试邮件发送成功"})
+}
+
+func handleTestBark(c *gin.Context) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "加载配置失败: " + err.Error()})
+		return
+	}
+
+	if cfg.NotificationMethod != "bark" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "当前通知方式不是 Bark，无法测试 Bark"})
+		return
+	}
+
+	if cfg.BarkURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Bark URL 未配置"})
+		return
+	}
+
+	testNotification := []notifier.DomainNotification{
+		{
+			Domain:        "example.com",
+			IsFinalNotice: false,
+			Status:        "测试状态",
+		},
+	}
+
+	err = notifier.SendNotification(testNotification, cfg)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "发送测试 Bark 通知失败: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "测试 Bark 通知发送成功"})
 }
 
 type GithubRelease struct {

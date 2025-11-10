@@ -5,39 +5,76 @@
         <div class="card-body">
             <form id="settings-form" class="space-y-8">
                 <div class="space-y-4">
+                    <h3 class="text-lg font-semibold">通知方式</h3>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input type="radio" name="NOTIFICATION_METHOD" value="email" class="radio radio-primary"
+                                {{if or (not .config.NotificationMethod) (eq .config.NotificationMethod "email"
+                                )}}checked{{end}}>
+                            <span class="label-text">邮件</span>
+                        </label>
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input type="radio" name="NOTIFICATION_METHOD" value="bark" class="radio radio-primary" {{if
+                                eq .config.NotificationMethod "bark" }}checked{{end}}>
+                            <span class="label-text">Bark</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="email-settings" class="space-y-4">
                     <h3 class="text-lg font-semibold">邮件设置</h3>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">收件人邮箱</span>
                         </label>
-                        <input type="email" name="RECIPIENT_EMAIL" class="input input-bordered" value="{{.config.RecipientEmail}}" required>
+                        <input type="email" name="RECIPIENT_EMAIL" class="input input-bordered"
+                            value="{{.config.RecipientEmail}}">
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">SMTP 服务器</span>
                         </label>
-                        <input type="text" name="SMTP_SERVER" class="input input-bordered" value="{{.config.SMTPServer}}" required>
+                        <input type="text" name="SMTP_SERVER" class="input input-bordered"
+                            value="{{.config.SMTPServer}}">
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">SMTP 端口</span>
                         </label>
-                        <input type="number" name="SMTP_PORT" class="input input-bordered" value="{{.config.SMTPPort}}" required>
+                        <input type="number" name="SMTP_PORT" class="input input-bordered" value="{{.config.SMTPPort}}">
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">SMTP 用户名</span>
                         </label>
-                        <input type="text" name="SMTP_USERNAME" class="input input-bordered" value="{{.config.SMTPUsername}}" required>
+                        <input type="text" name="SMTP_USERNAME" class="input input-bordered"
+                            value="{{.config.SMTPUsername}}">
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">SMTP 密码</span>
                         </label>
-                        <input type="password" name="SMTP_PASSWORD" class="input input-bordered" value="{{.config.SMTPPassword}}" required>
+                        <input type="password" name="SMTP_PASSWORD" class="input input-bordered"
+                            value="{{.config.SMTPPassword}}">
                     </div>
                     <button type="button" id="test-email-btn" class="btn">测试邮件发送</button>
                     <span class="text-sm text-gray-600">请先保存配置再测试邮件发送</span>
+                </div>
+
+                <div id="bark-settings" class="space-y-4" style="display: none;">
+                    <h3 class="text-lg font-semibold">Bark 设置</h3>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Bark URL</span>
+                        </label>
+                        <input type="text" name="BARK_URL" class="input input-bordered" value="{{.config.BarkURL}}"
+                            placeholder="https://api.day.app/your_device_key">
+                        <label class="label">
+                            <span class="label-text-alt">请输入完整的 Bark 推送地址</span>
+                        </label>
+                    </div>
+                    <button type="button" id="test-bark-btn" class="btn">测试 Bark 推送</button>
+                    <span class="text-sm text-gray-600">请先保存配置再测试 Bark 推送</span>
                 </div>
 
                 <div class="space-y-4">
@@ -46,7 +83,8 @@
                         <label class="label">
                             <span class="label-text">Web 端口</span>
                         </label>
-                        <input type="number" name="WEB_PORT" class="input input-bordered" value="{{.config.WebPort}}" required>
+                        <input type="number" name="WEB_PORT" class="input input-bordered" value="{{.config.WebPort}}"
+                            required>
                     </div>
                 </div>
 
@@ -56,13 +94,15 @@
                         <label class="label">
                             <span class="label-text">用户名</span>
                         </label>
-                        <input type="text" name="AUTH_USERNAME" class="input input-bordered" value="{{.config.AuthUsername}}" required>
+                        <input type="text" name="AUTH_USERNAME" class="input input-bordered"
+                            value="{{.config.AuthUsername}}" required>
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">密码</span>
                         </label>
-                        <input type="password" name="AUTH_PASSWORD" class="input input-bordered" value="{{.config.AuthPassword}}" required>
+                        <input type="password" name="AUTH_PASSWORD" class="input input-bordered"
+                            value="{{.config.AuthPassword}}" required>
                     </div>
                 </div>
 
@@ -72,13 +112,15 @@
                         <label class="label">
                             <span class="label-text">域名查询频率（秒）</span>
                         </label>
-                        <input type="number" name="QUERY_FREQUENCY_SECONDS" class="input input-bordered" value="{{.config.QueryFrequencySeconds}}" required>
+                        <input type="number" name="QUERY_FREQUENCY_SECONDS" class="input input-bordered"
+                            value="{{.config.QueryFrequencySeconds}}" required>
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Session Secret</span>
                         </label>
-                        <input type="text" name="SESSION_SECRET" class="input input-bordered" value="{{.config.SessionSecret}}" required>
+                        <input type="text" name="SESSION_SECRET" class="input input-bordered"
+                            value="{{.config.SessionSecret}}" required>
                     </div>
                 </div>
 
@@ -91,7 +133,49 @@
 </div>
 
 <script>
-    document.getElementById('test-email-btn').addEventListener('click', function(e) {
+    // 切换通知方式字段显示
+    function toggleNotificationFields() {
+        const notificationMethod = document.querySelector('input[name="NOTIFICATION_METHOD"]:checked').value;
+        const emailSettings = document.getElementById('email-settings');
+        const barkSettings = document.getElementById('bark-settings');
+
+        if (notificationMethod === 'email') {
+            emailSettings.style.display = 'block';
+            barkSettings.style.display = 'none';
+            // 设置邮件字段为必填
+            emailSettings.querySelectorAll('input').forEach(input => {
+                input.required = true;
+            });
+            // 移除 Bark 字段必填
+            barkSettings.querySelectorAll('input').forEach(input => {
+                input.required = false;
+            });
+        } else {
+            emailSettings.style.display = 'none';
+            barkSettings.style.display = 'block';
+            // 移除邮件字段必填
+            emailSettings.querySelectorAll('input').forEach(input => {
+                input.required = false;
+            });
+            // 设置 Bark 字段为必填
+            barkSettings.querySelectorAll('input').forEach(input => {
+                input.required = true;
+            });
+        }
+    }
+
+    // 监听通知方式变化
+    document.querySelectorAll('input[name="NOTIFICATION_METHOD"]').forEach(radio => {
+        radio.addEventListener('change', toggleNotificationFields);
+    });
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleNotificationFields();
+    });
+
+    // 测试邮件
+    document.getElementById('test-email-btn').addEventListener('click', function (e) {
         e.preventDefault();
         fetch('/api/test-email', {
             method: 'POST',
@@ -99,17 +183,39 @@
                 'Content-Type': 'application/json',
             },
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('测试邮件发送成功!');
-            } else {
-                alert('测试邮件发送失败!');
-            }
-        })
-        .catch(error => {
-            alert('发送请求时出错：' + error);
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('测试邮件发送成功!');
+                } else {
+                    alert('测试邮件发送失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                alert('发送请求时出错：' + error);
+            });
     });
-    </script>
+
+    // 测试 Bark
+    document.getElementById('test-bark-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/api/test-bark', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('测试 Bark 推送成功!');
+                } else {
+                    alert('测试 Bark 推送失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                alert('发送请求时出错：' + error);
+            });
+    });
+</script>
 {{end}}

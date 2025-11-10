@@ -231,6 +231,33 @@ func RefreshAllDomains(domains []string, whoisServers map[string]string, cfg *co
 	processResults(results, cfg)
 }
 
+// CheckSingleDomain 立即检查单个域名
+func CheckSingleDomain(domain string, whoisServers map[string]string, cfg *config.Config) error {
+	// 检查域名是否已发送最终通知
+	statusMutex.RLock()
+	status, exists := domainStatuses[domain]
+	if exists && status.FinalNoticed {
+		statusMutex.RUnlock()
+		log.Printf("域名 %s 已发送最终通知，跳过检查", domain)
+		return nil
+	}
+	statusMutex.RUnlock()
+
+	// 检查域名
+	result, err := checkDomain(domain, whoisServers, cfg)
+	if err != nil {
+		return fmt.Errorf("检查域名 %s 错误: %v", domain, err)
+	}
+
+	// 处理结果
+	results := make(chan whois.DomainStatus, 1)
+	results <- result
+	close(results)
+	processResults(results, cfg)
+
+	return nil
+}
+
 type DomainCheckResult struct {
 	Domain     string
 	Registered bool

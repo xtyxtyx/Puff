@@ -46,6 +46,8 @@ type Config struct {
 	AuthPassword          string `json:"AUTH_PASSWORD"`
 	SessionSecret         string `json:"SESSION_SECRET"`
 	QueryFrequencySeconds int    `json:"QUERY_FREQUENCY_SECONDS"`
+	NotificationMethod    string `json:"NOTIFICATION_METHOD"`
+	BarkURL               string `json:"BARK_URL"`
 }
 
 func ensureConfigFiles() error {
@@ -60,6 +62,8 @@ AUTH_USERNAME="admin"
 AUTH_PASSWORD="admin"
 SESSION_SECRET="your_random_secret_string"
 QUERY_FREQUENCY_SECONDS=300
+NOTIFICATION_METHOD="email"
+BARK_URL=""
 `,
 		"list.yml": `domains: []
 `,
@@ -126,6 +130,11 @@ func LoadConfig() (*Config, error) {
 		QueryFrequencySeconds = 300 // 默认为5分钟
 	}
 
+	notificationMethod := getEnv("NOTIFICATION_METHOD")
+	if notificationMethod == "" {
+		notificationMethod = "email" // 默认为 email
+	}
+
 	config := &Config{
 		SMTPServer:            getEnv("SMTP_SERVER"),
 		SMTPPort:              smtpPort,
@@ -137,6 +146,8 @@ func LoadConfig() (*Config, error) {
 		AuthPassword:          getEnv("AUTH_PASSWORD"),
 		SessionSecret:         getEnv("SESSION_SECRET"),
 		QueryFrequencySeconds: QueryFrequencySeconds,
+		NotificationMethod:    notificationMethod,
+		BarkURL:               getEnv("BARK_URL"),
 	}
 
 	// 清理 envMap 以释放内存
@@ -292,6 +303,8 @@ WEB_PORT=8080
 AUTH_USERNAME="admin"
 AUTH_PASSWORD="admin"
 SESSION_SECRET="your_random_secret_string"
+NOTIFICATION_METHOD="email"
+BARK_URL=""
 `,
 		"list.yml": `domains: []
 `,
@@ -350,6 +363,8 @@ func SaveConfig(cfg *Config) error {
 	updateEnv("AUTH_USERNAME", cfg.AuthUsername)
 	updateEnv("AUTH_PASSWORD", cfg.AuthPassword)
 	updateEnv("SESSION_SECRET", cfg.SessionSecret)
+	updateEnv("NOTIFICATION_METHOD", cfg.NotificationMethod)
+	updateEnv("BARK_URL", cfg.BarkURL)
 
 	// 对于数值类型，只在非零时更新
 	if cfg.SMTPPort != 0 {
